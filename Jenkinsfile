@@ -25,13 +25,13 @@ pipeline {
         }
 
         stage('SERVER : build, scan, push') {
-            when {
-                anyOf {
-                    changeset 'server/**'
-                    changeset 'Jenkinsfile'
-                    expression { env.BUILD_NUMBER == '1' }
-                }
-            }
+        when {
+    anyOf {
+        changeset 'server/**'
+        changeset 'Jenkinsfile'
+        expression { currentBuild.previousSuccessfulBuild == null }
+    }
+}
 
             steps {
                 withCredentials([usernamePassword(
