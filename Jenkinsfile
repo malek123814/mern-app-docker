@@ -16,6 +16,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 git branch: 'main',
@@ -25,14 +26,6 @@ pipeline {
         }
 
         stage('SERVER : build, scan, push') {
-        when {
-    anyOf {
-        changeset 'server/**'
-        changeset 'Jenkinsfile'
-        expression { currentBuild.previousSuccessfulBuild == null }
-    }
-}
-
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub',
@@ -42,17 +35,29 @@ pipeline {
                     sh '''
                         set -eu
 
-                        docker build -t "$IMAGE_SERVER:$BUILD_NUMBER" server
+                        echo "===== BUILD SERVER ====="
+
+                        docker build \
+                          -t "$IMAGE_SERVER:$BUILD_NUMBER" \
+                          server
+
+                        echo "===== SCAN TRIVY SERVER ====="
 
                         docker run --rm \
                           -v /var/run/docker.sock:/var/run/docker.sock \
                           aquasec/trivy:0.76.2 image \
-                          "$IMAGE_SERVER:$BUILD_NUMBER" > trivy_server.txt
+                          "$IMAGE_SERVER:$BUILD_NUMBER" \
+                          > trivy_server.txt
 
                         cat trivy_server.txt
 
+                        echo "===== LOGIN DOCKER HUB ====="
+
                         echo "$DH_PASS" | docker login \
-                          -u "$DH_USER" --password-stdin
+                          -u "$DH_USER" \
+                          --password-stdin
+
+                        echo "===== PUSH SERVER ====="
 
                         docker push "$IMAGE_SERVER:$BUILD_NUMBER"
                     '''
@@ -61,14 +66,6 @@ pipeline {
         }
 
         stage('CLIENT : build, scan, push') {
-            when {
-                anyOf {
-                    changeset 'client/**'
-                    changeset 'Jenkinsfile'
-                    expression { env.BUILD_NUMBER == '1' }
-                }
-            }
-
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub',
@@ -78,17 +75,29 @@ pipeline {
                     sh '''
                         set -eu
 
-                        docker build -t "$IMAGE_CLIENT:$BUILD_NUMBER" client
+                        echo "===== BUILD CLIENT ====="
+
+                        docker build \
+                          -t "$IMAGE_CLIENT:$BUILD_NUMBER" \
+                          client
+
+                        echo "===== SCAN TRIVY CLIENT ====="
 
                         docker run --rm \
                           -v /var/run/docker.sock:/var/run/docker.sock \
                           aquasec/trivy:0.76.2 image \
-                          "$IMAGE_CLIENT:$BUILD_NUMBER" > trivy_client.txt
+                          "$IMAGE_CLIENT:$BUILD_NUMBER" \
+                          > trivy_client.txt
 
                         cat trivy_client.txt
 
+                        echo "===== LOGIN DOCKER HUB ====="
+
                         echo "$DH_PASS" | docker login \
-                          -u "$DH_USER" --password-stdin
+                          -u "$DH_USER" \
+                          --password-stdin
+
+                        echo "===== PUSH CLIENT ====="
 
                         docker push "$IMAGE_CLIENT:$BUILD_NUMBER"
                     '''
@@ -99,14 +108,22 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'trivy_*.txt',
-                             allowEmptyArchive: true
+            echo "===== ARCHIVAGE RAPPORTS TRIVY ====="
+
+            archiveArtifacts(
+                artifacts: 'trivy_*.txt',
+                allowEmptyArchive: true
+            )
+
+            echo "===== NETTOYAGE DOCKER ====="
 
             sh '''
                 docker logout || true
 
-                docker image rm "$IMAGE_SERVER:$BUILD_NUMBER" \
-                  "$IMAGE_CLIENT:$BUILD_NUMBER" 2>/dev/null || true
+                docker image rm \
+                  "$IMAGE_SERVER:$BUILD_NUMBER" \
+                  "$IMAGE_CLIENT:$BUILD_NUMBER" \
+                  2>/dev/null || true
             '''
         }
     }
