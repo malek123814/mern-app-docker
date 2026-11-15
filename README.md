@@ -54,3 +54,79 @@ Docker Compose est utilisé pour gérer les différents services de l'applicatio
 
 5. Accédez au client à [http://localhost:3000](http://localhost:3000).
 
+---
+
+## Intégration continue avec Jenkins — TP3
+
+Ce projet intègre un pipeline CI avec Jenkins permettant
+d'automatiser la construction, l'analyse de sécurité et
+la publication des images Docker du projet MERN.
+
+### Outils utilisés
+
+- Jenkins : automatisation du pipeline CI
+- GitHub : gestion du code source
+- Docker : construction des images
+- Trivy : analyse des vulnérabilités
+- Docker Hub : stockage des images Docker
+
+### Configuration du pipeline
+
+Le pipeline est défini dans le fichier `Jenkinsfile`
+à la racine du projet.
+
+Il utilise deux identifiants Jenkins :
+
+- `github_ssh` : accès SSH au dépôt GitHub
+- `dockerhub` : authentification à Docker Hub
+
+### Étapes du pipeline
+
+1. Checkout : récupération du projet depuis GitHub.
+2. Build Server : construction de l'image Docker du serveur.
+3. Scan Server : analyse de sécurité avec Trivy.
+4. Push Server : publication de l'image sur Docker Hub.
+5. Build Client : construction de l'image Docker du client.
+6. Scan Client : analyse de sécurité avec Trivy.
+7. Push Client : publication de l'image sur Docker Hub.
+8. Archivage : sauvegarde des rapports Trivy.
+9. Nettoyage : déconnexion Docker Hub et suppression
+   des images locales construites.
+
+### Exécution du pipeline
+
+1. Démarrer Jenkins.
+2. Ouvrir l'interface Jenkins sur http://localhost:8080.
+3. Sélectionner le pipeline `TP3-MERN-Docker-CI`.
+4. Cliquer sur « Lancer un build ».
+5. Consulter « Console Output » pour suivre l'exécution.
+
+Le pipeline est également configuré pour vérifier
+les modifications GitHub toutes les cinq minutes environ.
+
+### Images Docker Hub
+
+Les images sont destinées à être publiées sous les noms :
+
+- `malekbejaoui1/mern-server:<BUILD_NUMBER>`
+- `malekbejaoui1/mern-client:<BUILD_NUMBER>`
+
+Le numéro du build Jenkins est utilisé comme tag.
+
+### Rapports de sécurité
+
+Les rapports générés par Trivy sont :
+
+- `trivy_server.txt`
+- `trivy_client.txt`
+
+Ils sont archivés dans Jenkins lorsqu'ils sont générés.
+
+### Dépôt GitHub
+
+https://github.com/malek123814/mern-app-docker
+
+### Auteur
+
+Malek Bejaoui
+
